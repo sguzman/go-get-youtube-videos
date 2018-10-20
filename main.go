@@ -5,7 +5,6 @@ import (
     "fmt"
     _ "github.com/lib/pq"
     "runtime"
-    "time"
 )
 
 type Channel struct {
@@ -71,16 +70,10 @@ func channels() Channel {
 }
 
 func main() {
-    dur, err := time.ParseDuration("3s")
-    if err != nil {
-        panic(err)
-    }
-
    for {
        channel := channels()
        fmt.Println(channel.id, channel.serial)
 
        runtime.GC()
-       time.Sleep(dur)
    }
 }
