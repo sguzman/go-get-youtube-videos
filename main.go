@@ -8,14 +8,19 @@ import (
     "time"
 )
 
+type Channel struct {
+    id uint64
+    serial string
+}
+
 const (
     connStr = "user=root dbname=youtube host=localhost port=5432 sslmode=disable"
 )
 
-func insert(db *sql.DB, id uint64, serial string) {
+func insert(db *sql.DB, channel Channel) {
     sqlInsert := "INSERT INTO youtube.entities.videos (id, serial) VALUES ($1, $2) ON CONFLICT (serial) DO NOTHING"
 
-    _, err := db.Exec(sqlInsert, id, serial)
+    _, err := db.Exec(sqlInsert, channel.id, channel.serial)
     if err != nil {
         panic(err)
     }
@@ -30,8 +35,8 @@ func conn() *sql.DB {
     return db
 }
 
-func count() uint64 {
-    sqlStr := "SELECT count(*) FROM youtube.entities.channels"
+func channels() Channel {
+    sqlStr := "SELECT id, serial FROM youtube.entities.channels ORDER BY RANDOM() LIMIT 1"
     db := conn()
     defer func() {
         err := db.Close()
@@ -40,19 +45,26 @@ func count() uint64 {
         }
     }()
 
-    var count uint64
     row, err := db.Query(sqlStr)
     if err != nil {
         panic(err)
     }
 
     if row.Next() {
-        err = row.Scan(&count)
+        var (
+            id uint64
+            serial string
+        )
+        err = row.Scan(&id, &serial)
         if err != nil {
             panic(err)
         }
 
-        return count
+        var channel Channel
+        channel.id = id
+        channel.serial = serial
+
+        return channel
     } else {
         panic("No count")
     }
@@ -64,9 +76,8 @@ func main() {
         panic(err)
     }
 
-    count := count()
-
-    fmt.Println("Count", count)
+    channel := channels()
+    fmt.Println(channel.id, channel.serial)
 
     /*for rows.Next() {
         var (
