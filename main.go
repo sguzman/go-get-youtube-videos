@@ -76,9 +76,11 @@ func main() {
         panic(err)
     }
 
-    channel := channels()
-    fmt.Println(channel.id, channel.serial)
+   for {
+       channel := channels()
+       fmt.Println(channel.id, channel.serial)
 
-    runtime.GC()
-    time.Sleep(dur)
+       runtime.GC()
+       time.Sleep(dur)
+   }
 }
