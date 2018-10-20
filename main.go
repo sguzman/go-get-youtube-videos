@@ -12,31 +12,33 @@ const (
     connStr = "user=root dbname=youtube host=localhost port=5432 sslmode=disable"
 )
 
-func insert(db *sql.DB, channel string) {
-    sqlInsert := "INSERT INTO youtube.entities.channels (serial) VALUES ($1) ON CONFLICT (serial) DO NOTHING"
+func insert(db *sql.DB, id uint64, serial string) {
+    sqlInsert := "INSERT INTO youtube.entities.videos (id, serial) VALUES ($1, $2) ON CONFLICT (serial) DO NOTHING"
 
-    _, err := db.Exec(sqlInsert, channel)
+    _, err := db.Exec(sqlInsert, id, serial)
     if err != nil {
         panic(err)
     }
 }
 
-func main() {
-    dur, err := time.ParseDuration("3s")
-
+func conn() *sql.DB {
     db, err := sql.Open("postgres", connStr)
     if err != nil {
         panic(err)
     }
 
+    return db
+}
+
+func count() uint64 {
+    sqlStr := "SELECT count(*) FROM youtube.entities.channels"
+    db := conn()
     defer func() {
         err := db.Close()
         if err != nil {
             panic(err)
         }
     }()
-
-    sqlStr := "SELECT count(*) FROM youtube.entities.channels"
 
     var count uint64
     row, err := db.Query(sqlStr)
@@ -49,9 +51,20 @@ func main() {
         if err != nil {
             panic(err)
         }
+
+        return count
     } else {
         panic("No count")
     }
+}
+
+func main() {
+    dur, err := time.ParseDuration("3s")
+    if err != nil {
+        panic(err)
+    }
+
+    count := count()
 
     fmt.Println("Count", count)
 
