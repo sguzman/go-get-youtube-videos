@@ -7,7 +7,7 @@ import (
     "runtime"
 )
 
-type Channel struct {
+type Row struct {
     id uint64
     serial string
 }
@@ -16,7 +16,7 @@ const (
     connStr = "user=root dbname=youtube host=localhost port=5432 sslmode=disable"
 )
 
-func insert(db *sql.DB, channel Channel) {
+func insert(db *sql.DB, channel Row) {
     sqlInsert := "INSERT INTO youtube.entities.videos (id, serial) VALUES ($1, $2) ON CONFLICT (serial) DO NOTHING"
 
     _, err := db.Exec(sqlInsert, channel.id, channel.serial)
@@ -34,7 +34,7 @@ func conn() *sql.DB {
     return db
 }
 
-func channels() Channel {
+func channels() Row {
     sqlStr := "SELECT id, serial FROM youtube.entities.channels ORDER BY RANDOM() LIMIT 1"
     db := conn()
     defer func() {
@@ -59,7 +59,7 @@ func channels() Channel {
             panic(err)
         }
 
-        var channel Channel
+        var channel Row
         channel.id = id
         channel.serial = serial
 
