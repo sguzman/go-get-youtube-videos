@@ -79,18 +79,6 @@ func main() {
     channel := channels()
     fmt.Println(channel.id, channel.serial)
 
-    /*for rows.Next() {
-        var (
-            id   uint64
-            name string
-        )
-        if err := rows.Scan(&id, &name); err != nil {
-            panic(err)
-        } else {
-            fmt.Printf("id = %d, name = %s\n", id, name)
-        }
-    }*/
-
     runtime.GC()
     time.Sleep(dur)
 }
