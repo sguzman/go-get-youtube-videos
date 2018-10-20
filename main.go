@@ -8,8 +8,20 @@ import (
     "time"
 )
 
+const (
+    connStr = "user=root dbname=youtube host=localhost port=5432 sslmode=disable"
+)
+
+func insert(db *sql.DB, channel string) {
+    sqlInsert := "INSERT INTO youtube.entities.channels (serial) VALUES ($1) ON CONFLICT (serial) DO NOTHING"
+
+    _, err := db.Exec(sqlInsert, channel)
+    if err != nil {
+        panic(err)
+    }
+}
+
 func main() {
-    connStr := "user=root dbname=youtube host=localhost port=5432 sslmode=disable"
     dur, err := time.ParseDuration("3s")
 
     db, err := sql.Open("postgres", connStr)
@@ -24,14 +36,26 @@ func main() {
         }
     }()
 
-    sqlStr := "SELECT id, serial FROM youtube.entities.channels"
+    sqlStr := "SELECT count(*) FROM youtube.entities.channels"
 
-    rows, err := db.Query(sqlStr)
+    var count uint64
+    row, err := db.Query(sqlStr)
     if err != nil {
         panic(err)
     }
 
-    for rows.Next() {
+    if row.Next() {
+        err = row.Scan(&count)
+        if err != nil {
+            panic(err)
+        }
+    } else {
+        panic("No count")
+    }
+
+    fmt.Println("Count", count)
+
+    /*for rows.Next() {
         var (
             id   uint64
             name string
@@ -41,7 +65,7 @@ func main() {
         } else {
             fmt.Printf("id = %d, name = %s\n", id, name)
         }
-    }
+    }*/
 
     runtime.GC()
     time.Sleep(dur)
