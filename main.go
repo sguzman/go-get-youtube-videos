@@ -6,6 +6,7 @@ import (
     "fmt"
     "github.com/PuerkitoBio/goquery"
     _ "github.com/lib/pq"
+    "io/ioutil"
     "net/http"
     "runtime"
     "strings"
@@ -216,7 +217,7 @@ func videoSerials(obj interface{}) []string {
     return serials
 }
 
-func contToken(obj interface{}) string {
+func contToken(obj interface{}) (string, bool) {
     m1, ok1 := obj.(map[string]interface{})
     if !ok1 {
         panic("Failed type cast")
@@ -289,7 +290,7 @@ func contToken(obj interface{}) string {
 
     m15, ok15 := m14["continuations"].([]interface{})
     if !ok15 {
-        panic("Failed type cast")
+        return "", false
     }
 
     m16, ok16 := m15[0].(map[string]interface{})
@@ -307,7 +308,61 @@ func contToken(obj interface{}) string {
         panic("Failed type cast")
     }
 
-    return m18
+    return m18, true
+}
+
+func nextPage(token string) interface{} {
+    url := fmt.Sprintf("https://www.youtube.com/browse_ajax")
+
+    client := &http.Client{}
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        panic(err)
+    }
+
+    q := req.URL.Query()
+    q.Add("ctoken", token)
+    q.Add("continuation", token)
+    req.URL.RawQuery = q.Encode()
+
+    req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36")
+    req.Header.Add("x-spf-previous", "https://www.youtube.com/channel/UC0rZoXAD5lxgBHMsjrGwWWQ/videos")
+    req.Header.Add("x-spf-referer", "https://www.youtube.com/channel/UC0rZoXAD5lxgBHMsjrGwWWQ/videos")
+    req.Header.Add("x-youtube-client-name", "1")
+    req.Header.Add("x-youtube-client-version", "2.20180921")
+    req.Header.Add("x-youtube-page-cl", "214220627")
+    req.Header.Add("x-youtube-page-label", "youtube.ytfe.desktop_20180921_0_RC2")
+    req.Header.Add("x-youtube-utc-offset", "-420")
+    req.Header.Add("x-youtube-variants-checksum", "00589810531d478dd01596fd6f1241e0")
+
+    res, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+
+    defer func() {
+        err := res.Body.Close()
+        if err != nil {
+            panic(err)
+        }
+    }()
+
+    if res.StatusCode != 200 {
+        panic(fmt.Sprintf("status code error: %d %s", res.StatusCode, res.Status))
+    }
+
+    var jsonBody interface{}
+    body, err := ioutil.ReadAll(res.Body)
+    if err != nil {
+        panic(err)
+    }
+
+    err = json.Unmarshal([]byte(body), &jsonBody)
+    if err != nil {
+        panic(err)
+    }
+
+    return jsonBody
 }
 
 func process() {
@@ -322,8 +377,11 @@ func process() {
         insert(conn, v)
     }
 
-    token := contToken(inter)
-    fmt.Println(token)
+    token, cont := contToken(inter)
+    for cont {
+        fmt.Println(token)
+
+    }
 }
 
 func main() {
