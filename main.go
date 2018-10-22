@@ -117,6 +117,31 @@ func mapJson(d *goquery.Document) interface{} {
     return jsonMap
 }
 
+func videoSerialGet(m15 []interface{}) []string {
+    serials := make([]string, len(m15))
+    for i := 0; i < len(m15); i++ {
+        item, ok := m15[i].(map[string]interface{})
+        if !ok {
+            panic("Failed type cast")
+        }
+
+        item1, ok16 := item["gridVideoRenderer"].(map[string]interface{})
+        if !ok16 {
+            panic("Failed type cast")
+        }
+
+        item2, ok17 := item1["videoId"].(string)
+        if !ok17 {
+            panic("Failed type cast")
+        }
+
+        serials[i] = item2
+        fmt.Println(item2)
+    }
+
+    return serials
+}
+
 func videoSerials(obj interface{}) []string {
     m1, ok1 := obj.(map[string]interface{})
     if !ok1 {
@@ -193,28 +218,7 @@ func videoSerials(obj interface{}) []string {
         panic("Failed type cast")
     }
 
-    serials := make([]string, len(m15))
-    for i := 0; i < len(m15); i++ {
-        item, ok := m15[i].(map[string]interface{})
-        if !ok {
-            panic("Failed type cast")
-        }
-
-        item1, ok16 := item["gridVideoRenderer"].(map[string]interface{})
-        if !ok16 {
-            panic("Failed type cast")
-        }
-
-        item2, ok17 := item1["videoId"].(string)
-        if !ok17 {
-            panic("Failed type cast")
-        }
-
-        serials[i] = item2
-        fmt.Println(item2)
-    }
-
-    return serials
+    return videoSerialGet(m15)
 }
 
 func contToken(obj interface{}) (string, bool) {
@@ -365,8 +369,94 @@ func nextPage(token string) interface{} {
     return jsonBody
 }
 
+func videoSerialsCont(obj interface{}) []string {
+    m1, ok1 := obj.([]interface{})
+    if !ok1 {
+        panic("Failed type cast")
+    }
+
+    m2, ok2 := m1[1].(map[string]interface{})
+    if !ok2 {
+        panic("Failed type cast")
+    }
+
+    m3, ok3 := m2["response"].(map[string]interface{})
+    if !ok3 {
+        panic("Failed type cast")
+    }
+
+    m4, ok4 := m3["continuationContents"].(map[string]interface{})
+    if !ok4 {
+        panic("Failed type cast")
+    }
+
+    m5, ok5 := m4["gridContinuation"].(map[string]interface{})
+    if !ok5 {
+        panic("Failed type cast")
+    }
+
+    m6, ok6 := m5["items"].([]interface{})
+    if !ok6 {
+        panic("Failed type cast")
+    }
+
+    fmt.Println(len(m6))
+    return videoSerialGet(m6)
+}
+
+func contTokenNext(obj interface{}) (string, bool) {
+    m1, ok1 := obj.([]interface{})
+    if !ok1 {
+        panic("Failed type cast")
+    }
+
+    m2, ok2 := m1[1].(map[string]interface{})
+    if !ok2 {
+        panic("Failed type cast")
+    }
+
+    m3, ok3 := m2["response"].(map[string]interface{})
+    if !ok3 {
+        panic("Failed type cast")
+    }
+
+    m4, ok4 := m3["continuationContents"].(map[string]interface{})
+    if !ok4 {
+        panic("Failed type cast")
+    }
+
+    m5, ok5 := m4["gridContinuation"].(map[string]interface{})
+    if !ok5 {
+        panic("Failed type cast")
+    }
+
+    m6, ok6 := m5["continuations"].([]interface{})
+    if !ok6 {
+        return "", false
+    }
+
+    m7, ok7 := m6[0].(map[string]interface{})
+    if !ok7 {
+        panic("Failed type cast")
+    }
+
+    m8, ok8 := m7["nextContinuationData"].(map[string]interface{})
+    if !ok8 {
+        panic("Failed type cast")
+    }
+
+    m9, ok9 := m8["continuation"].(string)
+    if !ok9 {
+        panic("Failed type cast")
+    }
+
+    return m9, true
+}
+
 func process() {
     channel := channels()
+    fmt.Println(channel)
+
     d := doc(channel)
     inter := mapJson(d)
     vids := videoSerials(inter)
@@ -380,7 +470,14 @@ func process() {
     token, cont := contToken(inter)
     for cont {
         fmt.Println(token)
+        jsonBody := nextPage(token)
+        vids = videoSerialsCont(jsonBody)
+        for i := 0; i < len(vids); i++ {
+            v := vids[i]
+            insert(conn, v)
+        }
 
+        token, cont = contTokenNext(jsonBody)
     }
 }
 
