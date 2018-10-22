@@ -5,9 +5,7 @@ ADD . /app/
 WORKDIR /app
 
 RUN go get -u "github.com/PuerkitoBio/goquery"
-RUN go get -u "github.com/deckarep/golang-set"
 RUN go get -u "github.com/lib/pq"
-RUN go get -u "github.com/imroc/req"
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags="-w -s" -o main .
 
 FROM alpine
