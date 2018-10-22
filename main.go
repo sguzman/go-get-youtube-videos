@@ -94,11 +94,16 @@ func doc(channel string) *goquery.Document {
     return doc
 }
 
-func find_script(d *goquery.Document) {
+func findJson(d *goquery.Document) {
+    prefix := "\n    window[\"ytInitialData\"] = "
+    suffix := ";\n"
+
     d.Find("script").Each(func(i int, s *goquery.Selection) {
         text := s.Text()
-        if strings.HasPrefix(text, "\n    window[\"ytInitialData\"]") {
-            fmt.Println(text)
+        if strings.HasPrefix(text, prefix) {
+            idx := strings.Index(text, suffix)
+            subText := text[len(prefix):idx]
+            fmt.Println(subText)
         }
 
     })
@@ -107,9 +112,7 @@ func find_script(d *goquery.Document) {
 func process() {
     channel := channels()
     d := doc(channel)
-    find_script(d)
-
-    fmt.Println(channel)
+    findJson(d)
 }
 
 func main() {
