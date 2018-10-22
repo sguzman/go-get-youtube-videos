@@ -24,7 +24,7 @@ func insert(db *sql.DB, serial string) {
     }
 }
 
-func conn() *sql.DB {
+func connection() *sql.DB {
     db, err := sql.Open("postgres", connStr)
     if err != nil {
         panic(err)
@@ -35,7 +35,7 @@ func conn() *sql.DB {
 
 func channels() string {
     sqlStr := "SELECT serial FROM youtube.entities.channels ORDER BY RANDOM() LIMIT 1"
-    db := conn()
+    db := connection()
     defer func() {
         err := db.Close()
         if err != nil {
@@ -116,7 +116,7 @@ func mapJson(d *goquery.Document) interface{} {
     return jsonMap
 }
 
-func videoSerials(obj interface{}) {
+func videoSerials(obj interface{}) []string {
     m1, ok1 := obj.(map[string]interface{})
     if !ok1 {
         panic("Failed type cast")
@@ -212,13 +212,21 @@ func videoSerials(obj interface{}) {
         serials[i] = item2
         fmt.Println(item2)
     }
+
+    return serials
 }
 
 func process() {
     channel := channels()
     d := doc(channel)
     inter := mapJson(d)
-    videoSerials(inter)
+    vids := videoSerials(inter)
+    conn := connection()
+
+    for i := 0; i < len(vids); i++ {
+        v := vids[i]
+        insert(conn, v)
+    }
 }
 
 func main() {
