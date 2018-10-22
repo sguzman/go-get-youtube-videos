@@ -7,19 +7,14 @@ import (
     "runtime"
 )
 
-type Row struct {
-    id uint64
-    serial string
-}
-
 const (
-    connStr = "user=root dbname=youtube host=localhost port=5432 sslmode=disable"
+    connStr = "user=postgres dbname=youtube host=192.168.1.63 port=30000 sslmode=disable"
 )
 
-func insert(db *sql.DB, channel Row) {
-    sqlInsert := "INSERT INTO youtube.entities.videos (id, serial) VALUES ($1, $2) ON CONFLICT (serial) DO NOTHING"
+func insert(db *sql.DB, serial string) {
+    sqlInsert := "INSERT INTO youtube.entities.videos (serial) VALUES ($1) ON CONFLICT (serial) DO NOTHING"
 
-    _, err := db.Exec(sqlInsert, channel.id, channel.serial)
+    _, err := db.Exec(sqlInsert, serial)
     if err != nil {
         panic(err)
     }
@@ -34,8 +29,8 @@ func conn() *sql.DB {
     return db
 }
 
-func channels() Row {
-    sqlStr := "SELECT id, serial FROM youtube.entities.channels ORDER BY RANDOM() LIMIT 1"
+func channels() string {
+    sqlStr := "SELECT serial FROM youtube.entities.channels ORDER BY RANDOM() LIMIT 1"
     db := conn()
     defer func() {
         err := db.Close()
@@ -49,30 +44,25 @@ func channels() Row {
         panic(err)
     }
 
+    var serial string
     if row.Next() {
-        var (
-            id uint64
-            serial string
-        )
-        err = row.Scan(&id, &serial)
+        err = row.Scan(&serial)
         if err != nil {
             panic(err)
         }
-
-        var channel Row
-        channel.id = id
-        channel.serial = serial
-
-        return channel
-    } else {
-        panic("No count")
     }
+
+    return serial
 }
+
+/*func scrapeChannel(channel string) []string {
+    //url := fmt.Sprintf("https://www.youtube.com/channel/%s/videos?flow=grid&view=0", channel.serial)
+}*/
 
 func main() {
    for {
        channel := channels()
-       fmt.Println(channel.id, channel.serial)
+       fmt.Println(channel)
 
        runtime.GC()
    }
