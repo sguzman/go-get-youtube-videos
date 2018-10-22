@@ -3,7 +3,9 @@ package main
 import (
     "database/sql"
     "fmt"
+    "github.com/PuerkitoBio/goquery"
     _ "github.com/lib/pq"
+    "net/http"
     "runtime"
 )
 
@@ -55,9 +57,31 @@ func channels() string {
     return serial
 }
 
-/*func scrapeChannel(channel string) []string {
-    //url := fmt.Sprintf("https://www.youtube.com/channel/%s/videos?flow=grid&view=0", channel.serial)
-}*/
+func doc(channel string) *goquery.Document {
+    url := fmt.Sprintf("https://www.youtube.com/channel/%s/videos?flow=grid&view=0", channel)
+    res, err := http.Get(url)
+    if err != nil {
+        panic(err)
+    }
+
+    defer func() {
+        err := res.Body.Close()
+        if err != nil {
+            panic(err)
+        }
+    }()
+
+    if res.StatusCode != 200 {
+        panic(fmt.Sprintf("status code error: %d %s", res.StatusCode, res.Status))
+    }
+
+    doc, err := goquery.NewDocumentFromReader(res.Body)
+    if err != nil {
+        panic(err)
+    }
+
+    return doc
+}
 
 func main() {
    for {
