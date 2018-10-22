@@ -16,7 +16,15 @@ const (
     connStr = "user=postgres dbname=youtube host=postgres-service.youtube.svc.cluster.local port=5432 sslmode=disable"
 )
 
-func insert(db *sql.DB, serial string) {
+func insert(serial string) {
+    db := connection()
+    defer func() {
+        err := db.Close()
+        if err != nil {
+            panic(err)
+        }
+    }()
+
     sqlInsert := "INSERT INTO youtube.entities.videos (serial) VALUES ($1) ON CONFLICT (serial) DO NOTHING"
 
     _, err := db.Exec(sqlInsert, serial)
@@ -460,11 +468,10 @@ func process() {
     d := doc(channel)
     inter := mapJson(d)
     vids := videoSerials(inter)
-    conn := connection()
 
     for i := 0; i < len(vids); i++ {
         v := vids[i]
-        insert(conn, v)
+        insert(v)
     }
 
     token, cont := contToken(inter)
@@ -474,7 +481,7 @@ func process() {
         vids = videoSerialsCont(jsonBody)
         for i := 0; i < len(vids); i++ {
             v := vids[i]
-            insert(conn, v)
+            insert(v)
         }
 
         token, cont = contTokenNext(jsonBody)
