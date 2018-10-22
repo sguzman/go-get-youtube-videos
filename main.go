@@ -13,7 +13,7 @@ import (
 )
 
 const (
-    connStr = "user=postgres dbname=youtube host=192.168.1.63 port=30000 sslmode=disable"
+    connStr = "user=postgres dbname=youtube host=postgres-service.youtube.svc.cluster.local port=5432 sslmode=disable"
 )
 
 func insert(db *sql.DB, serial string) {
