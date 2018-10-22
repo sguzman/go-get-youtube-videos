@@ -2,6 +2,7 @@ package main
 
 import (
     "database/sql"
+    "encoding/json"
     "fmt"
     "github.com/PuerkitoBio/goquery"
     _ "github.com/lib/pq"
@@ -94,25 +95,31 @@ func doc(channel string) *goquery.Document {
     return doc
 }
 
-func findJson(d *goquery.Document) {
+func mapJson(d *goquery.Document) interface{} {
     prefix := "\n    window[\"ytInitialData\"] = "
     suffix := ";\n"
 
+    var jsonMap interface{}
     d.Find("script").Each(func(i int, s *goquery.Selection) {
         text := s.Text()
         if strings.HasPrefix(text, prefix) {
             idx := strings.Index(text, suffix)
             subText := text[len(prefix):idx]
-            fmt.Println(subText)
-        }
 
+            err := json.Unmarshal([]byte(subText), &jsonMap)
+            if err != nil {
+                panic(err)
+            }
+        }
     })
+
+    return jsonMap
 }
 
 func process() {
     channel := channels()
     d := doc(channel)
-    findJson(d)
+    mapJson(d)
 }
 
 func main() {
