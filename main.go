@@ -7,6 +7,7 @@ import (
     _ "github.com/lib/pq"
     "net/http"
     "runtime"
+    "strings"
 )
 
 const (
@@ -59,7 +60,17 @@ func channels() string {
 
 func doc(channel string) *goquery.Document {
     url := fmt.Sprintf("https://www.youtube.com/channel/%s/videos?flow=grid&view=0", channel)
-    res, err := http.Get(url)
+
+    client := &http.Client{}
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        panic(err)
+    }
+
+    userAgent := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"
+    req.Header.Add("User-Agent", userAgent)
+
+    res, err := client.Do(req)
     if err != nil {
         panic(err)
     }
@@ -83,11 +94,27 @@ func doc(channel string) *goquery.Document {
     return doc
 }
 
+func find_script(d *goquery.Document) {
+    d.Find("script").Each(func(i int, s *goquery.Selection) {
+        text := s.Text()
+        if strings.HasPrefix(text, "\n    window[\"ytInitialData\"]") {
+            fmt.Println(text)
+        }
+
+    })
+}
+
+func process() {
+    channel := channels()
+    d := doc(channel)
+    find_script(d)
+
+    fmt.Println(channel)
+}
+
 func main() {
    for {
-       channel := channels()
-       fmt.Println(channel)
-
+       process()
        runtime.GC()
    }
 }
